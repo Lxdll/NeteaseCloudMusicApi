@@ -256,7 +256,16 @@ async function consturctServer(moduleDefs) {
             }
           }
         }
-        res.status(moduleResponse.status).send(moduleResponse.body)
+        if (req.baseUrl === '/song/download') {
+          res.set({
+            'Content-Type': 'audio/mpeg',
+            'Transfer-Encoding': 'chunked',
+            'Cache-Control': 'no-cache',
+          })
+          moduleResponse.data.pipe(res)
+        } else {
+          res.status(moduleResponse.status).send(moduleResponse.body)
+        }
       } catch (/** @type {*} */ moduleResponse) {
         console.log('[ERR]', decode(req.originalUrl), {
           status: moduleResponse.status,
