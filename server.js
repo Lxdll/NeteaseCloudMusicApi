@@ -205,6 +205,24 @@ async function consturctServer(moduleDefs) {
   for (const moduleDef of moduleDefinitions) {
     // Register the route.
     app.use(moduleDef.route, async (req, res) => {
+      if (req.baseUrl === '/api/song/download') {
+        const response = await moduleDef.module(req.query)
+
+        // 设置返回头
+        res.setHeader(
+          'Content-Type',
+          response.headers.get('content-type') || 'audio/flac',
+        )
+        res.setHeader('Content-Disposition', 'attachment; filename="song.flac"')
+        res.setHeader(
+          'Content-Length',
+          response.headers.get('content-length') || '0',
+        )
+
+        response.body.pipe(res)
+        return
+      }
+
       ;[req.query, req.body].forEach((item) => {
         if (typeof item.cookie === 'string') {
           item.cookie = cookieToJson(decode(item.cookie))
@@ -256,16 +274,7 @@ async function consturctServer(moduleDefs) {
             }
           }
         }
-        if (req.baseUrl === '/song/download') {
-          res.set({
-            'Content-Type': 'audio/mpeg',
-            'Transfer-Encoding': 'chunked',
-            'Cache-Control': 'no-cache',
-          })
-          moduleResponse.data.pipe(res)
-        } else {
-          res.status(moduleResponse.status).send(moduleResponse.body)
-        }
+        res.status(moduleResponse.status).send(moduleResponse.body)
       } catch (/** @type {*} */ moduleResponse) {
         console.log('[ERR]', decode(req.originalUrl), {
           status: moduleResponse.status,
